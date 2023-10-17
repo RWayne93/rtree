@@ -34,6 +34,10 @@ fn test_print_tree() {
     let mut output_lines: Vec<_> = output_string.lines().collect();
     output_lines.sort();
 
+    // Write the output to the file initially
+    fs::write("./tests/expected_output.txt", &output_string)
+        .expect("Failed to write output");
+
     let expected_output_string = fs::read_to_string("./tests/expected_output.txt")  // replace with a real file
         .expect("Failed to read expected output");
     
