@@ -1,0 +1,10 @@
+[34mrtree[0m
+    ├── [33mdir_with_subdirs[0m
+    │   ├── [33msubdir2[0m
+    │   │   └── file2.txt
+    │   └── [33msubdir1[0m
+    │       └── file1.txt
+    ├── [33mempty_dir[0m
+    └── [33mdir_with_files[0m
+        ├── file2.txt
+        └── file1.txt
