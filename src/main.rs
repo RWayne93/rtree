@@ -100,7 +100,11 @@ fn main() {
         .get_matches();
 
     let path_str: String = matches.get_one::<String>("DIRECTORY")
-        .map(|s| s.to_string())
+        .map(|s| if s == "." {
+            env::current_dir().unwrap().to_str().unwrap().to_string()
+        } else {
+            s.to_string()
+        })
         .unwrap_or_else(|| String::from("."));
 
     let path = PathBuf::from(path_str);
@@ -115,3 +119,4 @@ fn main() {
 }
 
 
+    
