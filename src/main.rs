@@ -1,12 +1,12 @@
 use std::env;
 use std::path::Path;
-use std::path::PathBuf;
 use clap::{Command, Arg, ArgAction};
 mod colors;
 use colors::Color;
 use std::collections::HashMap;
 use serde::Serialize;
 use std::fs;
+use std::io;
 //use colored::*;
 
 #[derive(Debug, Serialize)]
@@ -15,19 +15,28 @@ enum Node {
     File(String),
 }
 
-fn convert_to_json_structure(path: &Path) -> Node {
+fn convert_to_json_structure(path: &Path) -> io::Result<Node> {
+    if !path.exists() {
+        return Err(io::Error::new(io::ErrorKind::NotFound, "Path does not exist"));
+    }
     if path.is_dir() {
         let mut children = HashMap::new();
-        for entry in fs::read_dir(path).expect("Failed to read directory") {
-            let entry_path = entry.expect("Failed to read entry").path();
-            let filename = entry_path.file_name().and_then(|name| name.to_str()).unwrap_or("").to_string();
+        for entry in fs::read_dir(path)? {
+            let entry_path = entry?.path();
+            let filename = entry_path.file_name()
+                .and_then(|name| name.to_str())
+                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Failed to read filename"))?
+                .to_string();
             if filename != ".DS_Store" && filename != "target" && filename != "env" {
-                children.insert(filename, Box::new(convert_to_json_structure(&entry_path)));
+                children.insert(filename, Box::new(convert_to_json_structure(&entry_path)?));
             }
         }
-        Node::Directory(children)
+        Ok(Node::Directory(children))
     } else {
-        Node::File(path.to_str().unwrap_or("").to_string())
+        let file_name = path.to_str()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Failed to read file path"))?
+            .to_string();
+        Ok(Node::File(file_name))
     }
 }
 
@@ -107,16 +116,24 @@ fn main() {
         })
         .unwrap_or_else(|| String::from("."));
 
-    let path = PathBuf::from(path_str);
+        let path = Path::new(&path_str);
 
-    if matches.get_flag("json") {
-        let tree = convert_to_json_structure(&path);
-        let json = serde_json::to_string_pretty(&tree).expect("Failed to serialize to JSON");
-        println!("{}", json);
-    } else {
-        print_tree(&path, "", true);
+        if matches.get_flag("json") {
+            match convert_to_json_structure(&path) {
+                Ok(node) => {
+                    let json = serde_json::to_string_pretty(&node).expect("Failed to serialize to JSON");
+                    println!("{}", json);
+                },
+                Err(e) => {
+                    eprintln!("Failed to create tree: {}", e);
+                    return; // or handle the error in some other way
+                }
+            }
+        } else {
+            // TODO handle the case where the path doesn't exist in your print_tree function
+            print_tree(&path, "", true);
+        }
     }
-}
 
 
     
